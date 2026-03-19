@@ -1,0 +1,157 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/ndeimler99/TELOMOD/master/nextflow_schema.json",
+    "title": "ndeimler99/TELOMOD pipeline parameters",
+    "description": "A pipeline for the analysis of modified nucleotides at telomeres",
+    "type": "object",
+    "definitions": {
+        "Species": {
+            "title": "Species",
+            "type": "object",
+            "fa_icon": "fas fa-arrow-right",
+            "properties": {
+                "human":{
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Human"
+                },
+                "pombe":{
+                    "type": "boolean",
+                    "default": false,
+                    "title": "S. pombe"
+                },
+                "cerevisiae":{
+                    "type": "boolean",
+                    "default": false,
+                    "title": "S. cerevisiae"
+                }
+            }
+        },
+        "Input_Output": {
+            "title": "Input and Output Parameters",
+            "type": "object",
+            "fa_icon": "fas fa-arrow-right",
+            "description": "Mandatory Parameters to set up the Analysis",
+            "required": ["modbam", "telo_stats", "reference"],
+            "properties": {
+                "modbam": {
+                    "type": "string",
+                    "format": "path",
+                    "exists": true,
+                    "title": "Modification Bam Basecalling File",
+                },
+                "telo_stats":{
+                    "type": "string",
+                    "format": "path",
+                    "title": "TARPON Stats File",
+                    "exists": true
+                },
+                "cluster_results":{
+                    "type": "string",
+                    "format": "path",
+                    "title": "Cluster Results File"
+                },
+                "reference": {
+                    "type": "string",
+                    "format": "path",
+                    "exists": true,
+                    "title": "Reference FASTA File"
+                },
+                "spike_in_reference": {
+                    "type": "string",
+                    "format": "path",
+                    "exists": true,
+                    "title": "Spike In Reference FASTA File"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "path",
+                    "title": "Output Directory",
+                    "default": "output",
+                }
+            }
+        },
+        "Options": {
+            "title": "Basic Pipeline Options",
+            "type": "object",
+            "fa_icon": "fas fa-arrow-right",
+            "description": "Basic Pipeline Options",
+            "required": ["mod_confidence", "modification_code", "modification_nucl", "minimum_genomic_read_length"],
+            "properties": {
+                "mod_confidence": {
+                    "type": "number",
+                    "title": "Modification Confidence",
+                    "default": 0.9,
+                    "minimum":0,
+                    "exclusiveMaximum": 1
+                },
+                "modification_code": {
+                    "type": "string",
+                    "title": "Modification Code",
+                    "default":"m",
+                },
+                "modification_nucl": {
+                    "type": "string",
+                    "default": "C",
+                    "title": "Modified Nucleotide",
+                },
+                "minimum_genomic_read_length": {
+                    "type": "number",
+                    "title": "Minimum Genomic Read Length",
+                    "default": 5000
+                }
+            }
+        },
+        "Plotting": {
+            "title": "Telomere Plotting Options",
+            "type": "object",
+            "fa_icon": "fas fa-arrow-right",
+            "description": "Basic Pipeline Options",
+            "properties": {
+                "max_subtelo_stretch": {
+                    "type": "number",
+                    "title": "Number of Subtelomeric Nucleotides to Show",
+                    "default": 5000,
+                    "minimum":0
+                },
+                "image_width": {
+                    "type": "number",
+                    "title": "Image Width",
+                    "default": 1500,
+                    "minimum":0
+                },
+                "image_height":{
+                    "type":"number",
+                    "title": "Image Height",
+                    "default": 1000,
+                    "minimum": 0
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/Species"
+        },
+        {
+            "$ref": "#/definitions/Input_Output"
+        },
+        {
+            "$ref": "#/definitions/Options"
+        },
+        {
+            "$ref": "#/definitions/Plotting"
+        }
+    ],
+    "resources": {
+        "recommended": {
+            "cpus": 4,
+            "memory": "10GB"
+        },
+        "minimum": {
+            "cpus": 2,
+            "memory": "4GB"
+        },
+        "run_time": "Depends on Sequencing Size"
+    }
+}
