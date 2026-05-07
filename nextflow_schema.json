@@ -32,13 +32,13 @@
             "type": "object",
             "fa_icon": "fas fa-arrow-right",
             "description": "Mandatory Parameters to set up the Analysis",
-            "required": ["modbam", "telo_stats", "reference"],
+            "required": ["modbam", "telo_stats"],
             "properties": {
                 "modbam": {
                     "type": "string",
                     "format": "path",
                     "exists": true,
-                    "title": "Modification Bam Basecalling File",
+                    "title": "Modification Bam Basecalling File"
                 },
                 "telo_stats":{
                     "type": "string",

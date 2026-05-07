@@ -4,9 +4,11 @@ class WorkflowMain {
 
     // Citation string for pipeline
     public static String citation(workflow) {
-        return "If you use ${workflow.manifest.name} for your analysis please cite:\n\n" +
-            "* Nathaniel Deimler, David Ho, Peter Baumann; bioRxiv 2025.04.22.649940\n" +
-            "* https://doi.org/10.1101/2025.04.22.649940\n"
+        return "Thank you for using TELOMOD.\n" +
+                "To see a list of similar programs please visit\nhttps://github.com/ndeimler99"
+        // return "If you use ${workflow.manifest.name} for your analysis please cite:\n\n" +
+        //     "* Nathaniel Deimler, David Ho, Peter Baumann; bioRxiv 2025.04.22.649940\n" +
+        //     "* https://doi.org/10.1101/2025.04.22.649940\n"
     }
 
     // Generate help string

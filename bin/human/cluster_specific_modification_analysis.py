@@ -11,7 +11,7 @@ def rev_comp(seq):
     rev_dict = {"A":"T", "T":"A", "C":"G", "G":"C"}
     return ''.join([rev_dict[i] for i in seq[::-1]])
 
-def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, seqs, image_width=1500, image_height=1000):
+def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, seqs, c_strand_only, image_width=1500, image_height=1000):
     
 
     telo_stats = {k: v for k, v in telo_stats.items() if k in seqs}
@@ -27,7 +27,12 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, seqs, ima
     y_offset_bottom = 50
     x_offset_left = 75
     x_offset_right = 10
-    seq_height = (image_height - strand_spacer - y_offset_top - y_offset_bottom)/len(sorted_telos)
+
+    if not c_strand_only:
+        seq_height = (image_height - strand_spacer - y_offset_top - y_offset_bottom)/len(sorted_telos)
+    else:
+        seq_height = (image_height - y_offset_top - y_offset_bottom)/len(sorted_telos)
+
     nucl_width = (image_width - x_offset_left - x_offset_right)/seq_length
     
     g_strands = len([read for read in seqs if telo_stats[read]["strand"]=="G"])
@@ -51,7 +56,10 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, seqs, ima
         ### draw C telomeres 
         ctx.set_source_rgb(0,0,0)
         # draw y axis
-        ctx.rectangle(x_offset_left - 3, y_offset_top+g_strands*seq_height+strand_spacer, 3, c_strands*seq_height + 3)
+        if not c_strand_only:
+            ctx.rectangle(x_offset_left - 3, y_offset_top+g_strands*seq_height+strand_spacer, 3, c_strands*seq_height + 3)
+        else:
+            ctx.rectangle(x_offset_left - 3, y_offset_top, 3, c_strands*seq_height + 3)
         # draw x axis
         ctx.rectangle(x_offset_left, image_height-y_offset_bottom, image_width-x_offset_left - x_offset_right, 3)
         ctx.fill()
@@ -64,14 +72,16 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, seqs, ima
         ctx.text_path('C Strand')
         ctx.fill()
         ctx.restore()
-        ctx.save()
-        a,b,width,height,c,d = ctx.text_extents('G Strand')
-        ctx.translate(30, image_height - y_offset_bottom - (seq_height*c_strands)-strand_spacer - (seq_height*g_strands/2))
-        ctx.rotate(-math.pi / 2)   
-        ctx.move_to(-width/2, 0)
-        ctx.text_path('G Strand')
-        ctx.fill()
-        ctx.restore()
+
+        if not c_strand_only:
+            ctx.save()
+            a,b,width,height,c,d = ctx.text_extents('G Strand')
+            ctx.translate(30, image_height - y_offset_bottom - (seq_height*c_strands)-strand_spacer - (seq_height*g_strands/2))
+            ctx.rotate(-math.pi / 2)   
+            ctx.move_to(-width/2, 0)
+            ctx.text_path('G Strand')
+            ctx.fill()
+            ctx.restore()
         
         # label x-axis positions
         ctx.set_source_rgb(0, 0, 0)
@@ -160,79 +170,82 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, seqs, ima
                     ctx.rectangle(x_offset_left+pos*nucl_width, y_rect, 1*nucl_width, seq_height)
                     ctx.fill()
                 
-            y_rect -= seq_height      
-        # draw G telomeres
-        ctx.set_source_rgb(0,0,0)
-        # draw y axis
-        ctx.rectangle(x_offset_left - 3, y_offset_top, 3, g_strands*seq_height + 3)
-        ctx.fill()
-        
-        # label y-axis positions
-        for i in range(0, g_strands, 20):
-            if i % 100 == 0:
-                a,b,width,height,c,d = ctx.text_extents('{}'.format(i))
-                ctx.move_to(x_offset_left - width - 8, y_offset_top + g_strands*seq_height - i*seq_height + (height+1)/2)
-                ctx.text_path('{}'.format(i))
-            ctx.rectangle(x_offset_left-5, y_offset_top + g_strands*seq_height - i*seq_height, 4, 2)
+            y_rect -= seq_height 
+
+
+        if not c_strand_only:     
+            # draw G telomeres
+            ctx.set_source_rgb(0,0,0)
+            # draw y axis
+            ctx.rectangle(x_offset_left - 3, y_offset_top, 3, g_strands*seq_height + 3)
             ctx.fill()
+            
+            # label y-axis positions
+            for i in range(0, g_strands, 20):
+                if i % 100 == 0:
+                    a,b,width,height,c,d = ctx.text_extents('{}'.format(i))
+                    ctx.move_to(x_offset_left - width - 8, y_offset_top + g_strands*seq_height - i*seq_height + (height+1)/2)
+                    ctx.text_path('{}'.format(i))
+                ctx.rectangle(x_offset_left-5, y_offset_top + g_strands*seq_height - i*seq_height, 4, 2)
+                ctx.fill()
+            
+            
+            # draw telomeres
+            y_rect = y_offset_top + g_strands*seq_height - seq_height
+                
+            for telo in sorted_telos:
+                if telo_stats[telo]["strand"] == "C":
+                    continue
+                
+                telo_seq = telo_dict[telo][telo_stats[telo]["telo_start"]:telo_stats[telo]["telo_end"]]
+                subtelo = telo_dict[telo][0:telo_stats[telo]["telo_start"]][-5000:]
+                x_rect = x_offset_left + subtelo_stretch_max*nucl_width
+                i = 0
+                while i < len(telo_seq):
+                    if telo_seq[i:i+6] == 'GGTTAG':
+                        i += 6
+                        ctx.set_source_rgba(0.118, 0.533, 0.898, 0.3)
+                        ctx.rectangle(x_rect, y_rect, 6*nucl_width, seq_height)
+                        ctx.fill()
+                        x_rect += 6*nucl_width
+                    else:
+                        ctx.set_source_rgba(1, 0.757, 0.027, 0.3)
+                        ctx.rectangle(x_rect, y_rect, 1*nucl_width, seq_height)
+                        ctx.fill()
+                        x_rect += 1*nucl_width
+                        i+=1
         
+                # draw subtelomere
+                i = 0
+                x_rect = subtelo_stretch_max*nucl_width + x_offset_left
+                while i < len(subtelo):
+                    if subtelo[-i:-i-6] == "GGTTAG":
+                        i += 6
+                        ctx.set_source_rgba(0.118, 0.533, 0.898, 0.3)
+                        ctx.rectangle(x_rect-6*nucl_width, y_rect, 6*nucl_width, seq_height)
+                        ctx.fill()
+                        x_rect -= 6*nucl_width
+                    else:
+                        i += 1
+                        ctx.set_source_rgba(1, 0.757, 0.027, 0.3)
+                        ctx.rectangle(x_rect-1*nucl_width, y_rect, 1*nucl_width, seq_height)
+                        ctx.fill()
+                        x_rect -= 1*nucl_width
+                        
+                if telo in mod_dict:
+                    for pos in mod_dict[telo]["pos"]:
+                        if pos < telo_stats[telo]["telo_start"] - subtelo_stretch_max:
+                            continue
+                        pos = pos - (telo_stats[telo]["telo_start"] - subtelo_stretch_max)
+                        
+                        ctx.set_source_rgb(0, 0.302, 0.251)
+                        ctx.rectangle(x_offset_left+pos*nucl_width, y_rect, 1*nucl_width, seq_height)
+                        ctx.fill()
+                
+                
+                y_rect -= seq_height            
+            # draw modifications
         
-        # draw telomeres
-        y_rect = y_offset_top + g_strands*seq_height - seq_height
-            
-        for telo in sorted_telos:
-            if telo_stats[telo]["strand"] == "C":
-                continue
-            
-            telo_seq = telo_dict[telo][telo_stats[telo]["telo_start"]:telo_stats[telo]["telo_end"]]
-            subtelo = telo_dict[telo][0:telo_stats[telo]["telo_start"]][-5000:]
-            x_rect = x_offset_left + subtelo_stretch_max*nucl_width
-            i = 0
-            while i < len(telo_seq):
-                if telo_seq[i:i+6] == 'GGTTAG':
-                    i += 6
-                    ctx.set_source_rgba(0.118, 0.533, 0.898, 0.3)
-                    ctx.rectangle(x_rect, y_rect, 6*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect += 6*nucl_width
-                else:
-                    ctx.set_source_rgba(1, 0.757, 0.027, 0.3)
-                    ctx.rectangle(x_rect, y_rect, 1*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect += 1*nucl_width
-                    i+=1
-    
-            # draw subtelomere
-            i = 0
-            x_rect = subtelo_stretch_max*nucl_width + x_offset_left
-            while i < len(subtelo):
-                if subtelo[-i:-i-6] == "GGTTAG":
-                    i += 6
-                    ctx.set_source_rgba(0.118, 0.533, 0.898, 0.3)
-                    ctx.rectangle(x_rect-6*nucl_width, y_rect, 6*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect -= 6*nucl_width
-                else:
-                    i += 1
-                    ctx.set_source_rgba(1, 0.757, 0.027, 0.3)
-                    ctx.rectangle(x_rect-1*nucl_width, y_rect, 1*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect -= 1*nucl_width
-                    
-            if telo in mod_dict:
-                for pos in mod_dict[telo]["pos"]:
-                    if pos < telo_stats[telo]["telo_start"] - subtelo_stretch_max:
-                        continue
-                    pos = pos - (telo_stats[telo]["telo_start"] - subtelo_stretch_max)
-                    
-                    ctx.set_source_rgb(0, 0.302, 0.251)
-                    ctx.rectangle(x_offset_left+pos*nucl_width, y_rect, 1*nucl_width, seq_height)
-                    ctx.fill()
-            
-            
-            y_rect -= seq_height            
-        # draw modifications
-    
     
 #     # plot reads start with telomere and through telomere then backtrack and plot subtelomeric squences
 #         # trim all reads to contain maximum of 10kb subtelomeric sequence
@@ -336,6 +349,7 @@ def main(args):
 
     args.image_height = int(args.image_height)
     args.image_width = int(args.image_width)
+    args.c_strand_only = args.c_strand_only == "true"
     # load cluster dict from out_file
     cluster_dict, telo_seqs = get_cluster_dict(args.cluster_file)
     stats_dict = get_stats_dict(args.telo_stats, telo_seqs) 
@@ -345,7 +359,7 @@ def main(args):
 
     for cluster in cluster_dict:
         plot_cluster_telo_seqs(telo_dict, stats_dict, mod_dict, "cluster_{}.pdf".format(cluster), \
-                            cluster_dict[cluster], image_width=args.image_width, image_height=args.image_height)
+                            cluster_dict[cluster], args.c_strand_only, image_width=args.image_width, image_height=args.image_height)
 
 
 def argparser():
@@ -357,6 +371,7 @@ def argparser():
     parser.add_argument("--image_width", required=True)
     parser.add_argument("--image_height", required=True)
     parser.add_argument("--modification", required=True)
+    parser.add_argument("--c_strand_only", required=True)
     return parser
 
 if __name__ == "__main__":

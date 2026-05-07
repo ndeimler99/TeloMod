@@ -11,9 +11,12 @@ AXIS_TEXT_SIZE <- 9
 #           "/media/data_01/ndeimler/TELOMERE_MODIFICATIONS/131_HEK/131_TARPON/sample/sample.telo_stats.txt",
 #           "/media/data_01/ndeimler/TELOMERE_MODIFICATIONS/131_HEK/CLUSTERING/1000.2000.cluster_assignment.txt")
 
+# args <- c("/media/data_01/ndeimler/TELOMERE_MODIFICATIONS/131_HEK/131_HEK_5mC/telomeric_mod_summary.txt",
+#           "/media/data_01/ndeimler/TELOMERE_MODIFICATIONS/131_HEK/131_TARPON/sample/sample.telo_stats.txt",
+#           "/media/data_01/ndeimler/TELOMERE_MODIFICATIONS/131_HEK/CLUSTERING/1000.2000.cluster_assignment.txt")
 
 args <- commandArgs(trailing=TRUE)
-
+flag <- tolower(args[4]) == "true"
 ##### Plot Clustering Results #####
 
 df <- read.table(args[3], header=TRUE)
@@ -28,8 +31,8 @@ plt <- ggplot(data=df) +
         axis.title.x=element_blank()) +
   ylab("Telomeric Reads per Cluster [%]") +
   geom_hline(mapping=aes(yintercept=1.08), color="red", linetype="dashed")
-
-ggsave("cluster_size_distribution.pdf", plot=plt, width=6, height=4, units="cm")
+plt
+ggsave("cluster_size_distribution.pdf", plot=plt, width=12, height=10, units="cm")
 
 #####  Telomere Modification Stats in Cluster Specific Manner #####
 cluster_assignment <- read.table(args[3], header=TRUE)
@@ -52,46 +55,48 @@ telo_stats$cluster <- factor(telo_stats$cluster, levels=levels(order_df$cluster)
 
 
 plt <- ggplot(data=telo_stats) +
-  geom_boxplot(mapping=aes(x=cluster, y=subtelo)) +
-  theme_minimal() +
-  theme(axis.title=element_text(size=AXIS_TITLE_SIZE),
-        axis.text=element_text(size=AXIS_TEXT_SIZE),
-        axis.text.x=element_text(angle=45, hjust=1)) +
-  xlab("Cluster") + ylab("Subtelomere Modifications [%]")
-plt
-ggsave("cluster_subtelo_modifications.pdf", plot=plt, width=12, height=5, units="cm")
-
-plt <- ggplot(data=telo_stats) +
-  geom_boxplot(mapping=aes(x=cluster, y=subtelo, fill=strand)) +
-  theme_minimal() +
-  theme(axis.title=element_text(size=AXIS_TITLE_SIZE),
-        axis.text=element_text(size=AXIS_TEXT_SIZE),
-        axis.text.x=element_text(angle=45, hjust=1)) +
-  xlab("Cluster") + ylab("Subtelomere Modifications [%]") +
-  scale_fill_manual(breaks=c("C", "G"), values=c("#D81B60", "#1E88E5"), name="Strand")
-
-ggsave("cluster_by_strand_subtelo_modifications.pdf", plot=plt, width=12, height=5, units="cm")
-  
-
-plt <- ggplot(data=telo_stats) +
-  geom_boxplot(mapping=aes(x=cluster, y=telo)) +
+  geom_boxplot(mapping=aes(x=cluster, y=subtelo), linewidth=0.3, outlier.size=1) +
   theme_minimal() +
   theme(axis.title=element_text(size=AXIS_TITLE_SIZE),
         axis.text=element_text(size=AXIS_TEXT_SIZE),
         axis.text.x=element_text(angle=45, hjust=1)) +
   xlab("Cluster") + ylab("Subtelomere Modifications [%]")
 
-ggsave("cluster_telo_modifications.pdf", plot=plt, width=12, height=5, units="cm")
+ggsave("cluster_subtelo_modifications.pdf", plot=plt, width=25, height=10, units="cm")
+
+if (!flag){
+  plt <- ggplot(data=telo_stats) +
+    geom_boxplot(mapping=aes(x=cluster, y=subtelo, fill=strand), linewidth=0.3, outlier.size=1) +
+    theme_minimal() +
+    theme(axis.title=element_text(size=AXIS_TITLE_SIZE),
+          axis.text=element_text(size=AXIS_TEXT_SIZE),
+          axis.text.x=element_text(angle=45, hjust=1)) +
+    xlab("Cluster") + ylab("Subtelomere Modifications [%]") +
+    scale_fill_manual(breaks=c("C", "G"), values=c("#D81B60", "#1E88E5"), name="Strand")
+
+  ggsave("cluster_by_strand_subtelo_modifications.pdf", plot=plt, width=25, height=10, units="cm")
+}
 
 plt <- ggplot(data=telo_stats) +
-  geom_boxplot(mapping=aes(x=cluster, y=telo, fill=strand)) +
+  geom_boxplot(mapping=aes(x=cluster, y=telo), linewidth=0.3, outlier.size=1) +
   theme_minimal() +
   theme(axis.title=element_text(size=AXIS_TITLE_SIZE),
         axis.text=element_text(size=AXIS_TEXT_SIZE),
         axis.text.x=element_text(angle=45, hjust=1)) +
-  xlab("Cluster") + ylab("Subtelomere Modifications [%]") +
-  scale_fill_manual(breaks=c("C", "G"), values=c("#D81B60", "#1E88E5"), name="Strand")
+  xlab("Cluster") + ylab("Subtelomere Modifications [%]")
 
-ggsave("cluster_by_strand_telo_modifications.pdf", plot=plt, width=12, height=5, units="cm")
+ggsave("cluster_telo_modifications.pdf", plot=plt, width=25, height=10, units="cm")
 
+if (!flag){
+  plt <- ggplot(data=telo_stats) +
+    geom_boxplot(mapping=aes(x=cluster, y=telo, fill=strand), linewidth=0.3, outlier.size=1) +
+    theme_minimal() +
+    theme(axis.title=element_text(size=AXIS_TITLE_SIZE),
+          axis.text=element_text(size=AXIS_TEXT_SIZE),
+          axis.text.x=element_text(angle=45, hjust=1)) +
+    xlab("Cluster") + ylab("Subtelomere Modifications [%]") +
+    scale_fill_manual(breaks=c("C", "G"), values=c("#D81B60", "#1E88E5"), name="Strand")
+
+  ggsave("cluster_by_strand_telo_modifications.pdf", plot=plt, width=25, height=10, units="cm")
+}
 

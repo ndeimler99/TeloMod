@@ -32,6 +32,11 @@ workflow validate_parameters {
             println("Error - Species Must be Set")
         }
 
+        if (params.pombe | params.cerevisiae){
+            parameters_passed = false
+            println("Error - TELOMOD is not yet equipped to handle non Human/Vertebrate samples - please contact Nathaniel Deimler for more information")
+        }
+
         try {
             file(params.modbam, checkIfExists:true)
         }
@@ -49,11 +54,21 @@ workflow validate_parameters {
         }
 
         try {
-            file(params.reference, checkIfExists:true)
+            file(params.telo_bam, checkIfExists:true)
         }
         catch (Exception e) {
             parameters_passed = false
-            println("Error - Reference Doesn't Exist")
+            println("Error - Telo Bam File Doesn't Exist")
+        }
+
+        if (params.genomic_comparison){
+            try {
+                file(params.reference, checkIfExists:true)
+            }
+            catch (Exception e) {
+                parameters_passed = false
+                println("Error - Reference Doesn't Exist")
+            }
         }
 
         if (params.cluster_results != "") {
