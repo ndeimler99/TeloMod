@@ -341,7 +341,7 @@ process READ_BY_READ_ANALYSIS {
                                                 --modification ${params.modification_code} \
                                                 --c_strand_only ${params.c_strand_only}
 
-    cluster_plots.R ${telo_summary} ${telo_stats} ${cluster_results} ${params.c_strand_only}
+    ${baseDir}/bin/human/cluster_plots.R ${telo_summary} ${telo_stats} ${cluster_results} ${params.c_strand_only}
     """
 }
 
@@ -363,7 +363,7 @@ process PLOT_RESULTS {
 
     script:
     """
-    global_plots.R ${genomic_summary} ${telomeric_summary} ${telo_stats} ${params.c_strand_only}
+    ${baseDir}/bin/human/global_plots.R ${genomic_summary} ${telomeric_summary} ${telo_stats} ${params.c_strand_only}
     """
 }
 
@@ -383,7 +383,7 @@ process PLOT_TELO_RESULTS {
 
     script:
     """
-    global_telo_plots.R ${telomeric_summary} ${telo_stats} ${params.c_strand_only}
+    ${baseDir}/bin/human/global_telo_plots.R ${telomeric_summary} ${telo_stats} ${params.c_strand_only}
     """
 }
 
