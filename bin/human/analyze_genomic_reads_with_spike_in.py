@@ -4,6 +4,7 @@ import gzip
 import argparse
 import pysam
 from Bio import SeqIO
+import pandas as pd
 
 def get_ref_dict(reference_fasta):
     
@@ -15,16 +16,19 @@ def get_ref_dict(reference_fasta):
 
 def get_telo_read_ids(telo_stats_fh):
     
-    telo_seqs = []
-    with open(telo_stats_fh, "r") as fh:
-        linecount = 0
-        for line in fh:
-            if linecount == 0:
-                linecount += 1
-                continue
-            line = line.strip().split()
-            telo_seqs.append(line[0])
-    return telo_seqs
+    df = pd.read_table(telo_stats_fh, delimiter="\t")
+    return list(df["read_id"])
+
+    # telo_seqs = []
+    # with open(telo_stats_fh, "r") as fh:
+    #     linecount = 0
+    #     for line in fh:
+    #         if linecount == 0:
+    #             linecount += 1
+    #             continue
+    #         line = line.strip().split()
+    #         telo_seqs.append(line[0])
+    # return telo_seqs
 
 def process_genomic_alignment(alignment_file, reference_dict, minimum_length, removed_seqs=[]):
 

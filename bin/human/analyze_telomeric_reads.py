@@ -13,15 +13,18 @@ def rev_comp(seq):
 def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, mod_nucl, modification, file_name, summary_file, max_subtelo_stretch, c_strand_only, image_width=1500, image_height=1000):
     
     # load telomeric stats 
-    telo_stats = {}
-    with open(telo_stats_fh, "r") as fh:
-        linecount = 0
-        for line in fh:
-            if linecount == 0:
-                linecount += 1
-                continue
-            line = line.strip().split()
-            telo_stats[line[0]] = {"strand":line[1], "read_length":None, "telo_length":int(line[4]), "telo_start":int(line[3]), "telo_end":int(line[3])+int(line[4])}
+    telo_stats = pd.read_table(telo_stats_fh, delimiter="\t")
+    
+    telo_stats["telo_end"] = telo_stats["telo_start"] + telo_stats["vrr_telo_length"]
+    # telo_stats = {}
+    # with open(telo_stats_fh, "r") as fh:
+    #     linecount = 0
+    #     for line in fh:
+    #         if linecount == 0:
+    #             linecount += 1
+    #             continue
+    #         line = line.strip().split()
+    #         telo_stats[line[0]] = {"strand":line[1], "read_length":None, "telo_length":int(line[4]), "telo_start":int(line[3]), "telo_end":int(line[3])+int(line[4])}
     
     # load telomeric reads
     mod_bam_fh = pysam.AlignmentFile(mod_bam, "rb", check_sq=False)
@@ -35,19 +38,19 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
                 aln.query_sequence = rev_comp(aln.query_sequence)
                 
             telo_reads[aln.query_name] = aln.query_sequence
-            telo_stats[aln.query_name]["read_length"] = len(aln.query_sequence)
+            telo_stats.loc[telo_stats["read_id"]==aln.query_name,"read_length"] = len(aln.query_sequence)
             
             #telo_orientated[aln.query_name] = aln.query_sequence
-            if telo_stats[aln.query_name]["strand"] == "G":
+            if telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"] == "G":
                 telo_orientated[aln.query_name] = aln.query_sequence
                 telo_possible[aln.query_name] = {"full_read":telo_reads[aln.query_name].count(mod_nucl), 
-                                      "subtelo":telo_reads[aln.query_name][0:telo_stats[aln.query_name]["telo_start"]].count(mod_nucl), 
-                                      "telo":telo_reads[aln.query_name][telo_stats[aln.query_name]["telo_start"]:telo_stats[aln.query_name]["telo_end"]].count(mod_nucl)}
+                                      "subtelo":telo_reads[aln.query_name][0:telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_start"]].count(mod_nucl), 
+                                      "telo":telo_reads[aln.query_name][telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_start"]:telo_stats.loc[telo_stats["read_id"]==aln.query_name, "telo_end"]].count(mod_nucl)}
             else:
                 telo_orientated[aln.query_name] = rev_comp(aln.query_sequence)
                 telo_possible[aln.query_name] = {"full_read":telo_reads[aln.query_name].count(mod_nucl), 
-                                      "subtelo":telo_reads[aln.query_name][telo_stats[aln.query_name]["read_length"]-telo_stats[aln.query_name]["telo_start"]:].count(mod_nucl), 
-                                      "telo":telo_reads[aln.query_name][telo_stats[aln.query_name]["read_length"]-telo_stats[aln.query_name]["telo_end"]:telo_stats[aln.query_name]["read_length"]-telo_stats[aln.query_name]["telo_start"]].count(mod_nucl)}
+                                      "subtelo":telo_reads[aln.query_name][telo_stats.loc[telo_stats["read_id"]==aln.query_name, "read_length"]-telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_start"]:].count(mod_nucl), 
+                                      "telo":telo_reads[aln.query_name][telo_stats.loc[telo_stats["read_id"]==aln.query_name, "read_length"]-telo_stats.loc[telo_stats["read_id"]==aln.query_name, "telo_end"]:telo_stats.loc[telo_stats["read_id"]==aln.query_name, "read_length"]-telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_start"]].count(mod_nucl)}
             
     # load mod bam
     mod_dict = {}
@@ -90,34 +93,43 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
         summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format("read_id", "strand", "telo_length", "read_type", "possible_mods", "mods", "proportion"))
         for read in telo_stats:
             if read not in mod_dict:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "full_read", telo_possible[read]["full_read"], 0, 0))
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "subtelo", telo_possible[read]["subtelo"], 0, 0))
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "telo", telo_possible[read]["telo"], 0 ,0))
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                    telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "full_read", telo_possible[read]["full_read"], 0, 0))
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                    telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "subtelo", telo_possible[read]["subtelo"], 0, 0))
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, ttelo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                    telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "telo", telo_possible[read]["telo"], 0 ,0))
                 continue
             if telo_possible[read]["telo"] == 0:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "telo", 0, 0, 0))
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                    telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "telo", 0, 0, 0))
             else:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "telo", 
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                                                                telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "telo", 
                                                                  telo_possible[read]["telo"], mod_dict[read]["telo"],
                                                                  mod_dict[read]["telo"]/telo_possible[read]["telo"] * 100))
             
             if telo_possible[read]["subtelo"] == 0:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "subtelo", 0, 0, 0))
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                                                                        telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "subtelo", 0, 0, 0))
             else:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "subtelo", 
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                                                                    telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "subtelo", 
                                                                    telo_possible[read]["subtelo"], mod_dict[read]["subtelo"],
                                                                  mod_dict[read]["subtelo"]/telo_possible[read]["subtelo"] * 100))
                 
             if telo_possible[read]["full_read"] == 0:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "full_read", 0, 0, 0))
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                                                                        telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "full_read", 0, 0, 0))
             else:
-                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats[read]["strand"], telo_stats[read]["telo_length"], "full_read", 
+                summary_fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(read, telo_stats.loc[telo_stats["read_id"]==aln.query_name, "strand"], 
+                                                                    telo_stats.loc[telo_stats["read_id"]==aln.query_name, "vrr_telo_length"], "full_read", 
                                                                  telo_possible[read]["full_read"], mod_dict[read]["full_read"],
                                                                  mod_dict[read]["full_read"]/telo_possible[read]["full_read"] * 100))
 
             
             
-    max_telo_length = max([telo_stats[i]["telo_length"] for i in telo_stats])
+    max_telo_length = max(telo_stats["vrr_telo_length"])#[telo_stats[i]["telo_length"] for i in telo_stats])
     subtelo_stretch_max = max_subtelo_stretch
     seq_length = subtelo_stretch_max + max_telo_length
 
@@ -135,8 +147,8 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
 
     nucl_width = (image_width - x_offset_left - x_offset_right)/seq_length
     
-    g_strands = len([read for read in telo_stats if telo_stats[read]["strand"]=="G"])
-    c_strands = len([read for read in telo_stats if telo_stats[read]["strand"]=="C"])
+    g_strands = telo_stats["strand"].value_counts()["G"]#    len([read for read in telo_stats if telo_stats[read]["strand"]=="G"])
+    c_strands = telo_stats["strand"].value_counts()["C"]#   len([read for read in telo_stats if telo_stats[read]["strand"]=="C"])
     
     with cairo.PDFSurface(file_name, image_width, image_height) as surface:
     #if True:

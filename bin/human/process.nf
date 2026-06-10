@@ -69,7 +69,7 @@ process EXTRACTING_MODCALLS {
     """
     modkit extract calls --reference ${params.reference} \
             --bgzf --pass-only \
-            --filter-threshold 0.9 ${modbam} all_modcalls.txt
+            --filter-threshold ${params.mod_confidence} ${modbam} all_modcalls.txt
     """
 }
 
@@ -90,7 +90,7 @@ process EXTRACT_TELO_MODS {
     script:
     """
     modkit extract calls --bgzf --pass-only \
-            --filter-threshold 0.9 ${modbam} telo_modcalls.txt.gz
+            --filter-threshold ${params.mod_confidence} ${modbam} telo_modcalls.txt.gz
     """
 }
 
@@ -421,6 +421,8 @@ process GENERATE_CONSENSUS_AND_ALIGN {
     output:
         tuple val(cluster), path("*.consensus.fa"), path("*.c_strand.sorted.bam"), path("*.g_strand.sorted.bam"), emit: cluster_files
 
+    publishDir "${params.outdir}/CLUSTERS/", mode: 'copy', overwrite:true, pattern:"*.consensus.fa"
+
     script:
     def extra = params.c_strand_only ?
         """
@@ -529,10 +531,10 @@ process PILEUP {
         """
     :
         """
-        modkit pileup --filter-threshold 0.9 ${g_strand_aln} ${cluster}.g_strand.bed
+        modkit pileup --filter-threshold ${params.mod_confidence} ${g_strand_aln} ${cluster}.g_strand.bed
         """
     """
-    modkit pileup --filter-threshold 0.9 ${c_strand_aln} ${cluster}.c_strand.bed
+    modkit pileup --filter-threshold ${params.mod_confidence} ${c_strand_aln} ${cluster}.c_strand.bed
     ${extra}
     """
 }
