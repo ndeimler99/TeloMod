@@ -71,16 +71,6 @@ workflow validate_parameters {
             }
         }
 
-        if (params.cluster_results != "") {
-            try {
-                file(params.cluster_results, checkIfExists:true)
-            }
-            catch (Exception e) {
-                parameters_passed = false
-                println("Error - Cluster File Doesn't Exist")
-            }
-        }
-
         if (params.spike_in_reference != ""){
             try {
                 file(params.modbam, checkIfExists:true)

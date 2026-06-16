@@ -13,7 +13,7 @@ include { GENOMIC_READ_ANALYSIS } from "../bin/human/process.nf"
 include { EXTRACT_TELO_MODS } from "../bin/human/process.nf"
 include { EXTRACT_TELO_READS } from "../bin/human/process.nf"
 include { TELO_READ_ANALYSIS } from "../bin/human/process.nf"
-include { TELO_CLUSTER_ANALYSIS } from "../bin/human/process.nf"
+//include { TELO_CLUSTER_ANALYSIS } from "../bin/human/process.nf"
 include { PLOT_RESULTS; PLOT_TELO_RESULTS } from "../bin/human/process.nf"
 include { READ_BY_READ_ANALYSIS } from "../bin/human/process.nf"
 include { CREATE_CLUSTER_FASTA } from "../bin/human/process.nf"
@@ -69,15 +69,15 @@ workflow human_analysis {
         telo_mods = TELO_READ_ANALYSIS(telo_modbam_tarpon.telo_modbam, params.telo_stats, telo_modcalls.modcalls)
 
         // process telomeric modifications in cluster specific manner
-        if (params.cluster_results != "") {
-            cluster_mods = TELO_CLUSTER_ANALYSIS(params.cluster_results, telo_modbam_tarpon.telo_modbam,
-                                                params.telo_stats, telo_modcalls.modcalls)
+        if (params.clustering) {
+            // cluster_mods = TELO_CLUSTER_ANALYSIS(telo_modbam_tarpon.telo_modbam,
+            //                                     params.telo_stats, telo_modcalls.modcalls)
                                         
-            read_by_read_results = READ_BY_READ_ANALYSIS(cluster_mods.cluster_assignment, telo_modbam_tarpon.telo_modbam,
+            read_by_read_results = READ_BY_READ_ANALYSIS(telo_modbam_tarpon.telo_modbam,
                                                 params.telo_stats, telo_modcalls.modcalls, \
                                                 telo_mods.telomeric_reads)
 
-            cluster_fasta = CREATE_CLUSTER_FASTA(cluster_mods.cluster_assignment, telo_modbam_tarpon.telo_modbam,//repair_results,
+            cluster_fasta = CREATE_CLUSTER_FASTA(telo_modbam_tarpon.telo_modbam,//repair_results,
                                                 params.telo_stats)
 
             cluster_fasta.fasta
@@ -88,8 +88,9 @@ workflow human_analysis {
             cluster_fasta.bam  
                 .flatten()
                 .map { file -> tuple(file.baseName, file) }
-                .set { cluster_bam_ch}
+                .set { cluster_bam_ch }
 
+    
             joined_channel = cluster_fasta_ch.join(cluster_bam_ch)
           
             consensus_alignment = GENERATE_CONSENSUS_AND_ALIGN(joined_channel)

@@ -12,7 +12,7 @@ nextflow.enable.dsl=2
 println """\
     TELOMOD - A pipeline for the analysis of modified nucleotides at telomeres
     ================================================
-    v1.0.0
+    v1.0.1
     """.stripIndent()
 
 /*

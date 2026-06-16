@@ -210,7 +210,7 @@ process TELO_READ_ANALYSIS {
 
     script:
     """
-    ${baseDir}/bin/human/analyze_telomeric_reads.py --reference_aln ${mod_bam} \
+    python -u ${baseDir}/bin/human/analyze_telomeric_reads.py --reference_aln ${mod_bam} \
                                 --telo_stats ${telo_stats} \
                                 --mod_calls ${modcalls} \
                                 --modified_nucleotide ${params.modification_nucl} \
@@ -283,34 +283,34 @@ process REPAIR_TELOBAM {
     """
 }
 
-process TELO_CLUSTER_ANALYSIS {
+// process TELO_CLUSTER_ANALYSIS {
 
-    label 'telomod'
-    tag 'Cluster Specific Telomere Analysis'
+//     label 'telomod'
+//     tag 'Cluster Specific Telomere Analysis'
 
-    input:
-        path(cluster_results)
-        path(mod_bam)
-        path(telo_stats)
-        path(modcalls)
+//     input:
+//         path(cluster_results)
+//         path(mod_bam)
+//         path(telo_stats)
+//         path(modcalls)
 
-    output:
-        path("clustering_results.txt")
-        path("cluster_assignment.txt"), emit: cluster_assignment
+//     output:
+//         path("clustering_results.txt")
+//         path("cluster_assignment.txt"), emit: cluster_assignment
 
-    publishDir "${params.outdir}/", mode: 'copy', overwrite:true, pattern:"clustering_results.txt"
+//     publishDir "${params.outdir}/", mode: 'copy', overwrite:true, pattern:"clustering_results.txt"
 
-    // plots must include cluster size distribution
-    script:
-    """
-    ${baseDir}/bin/human/analyze_clustering_results.py --cluster_file ${cluster_results} \
-                            --cluster_out_fh cluster_assignment.txt \
-                            --mod_bam ${mod_bam} \
-                            --telo_stats ${telo_stats}
+//     // plots must include cluster size distribution
+//     script:
+//     """
+//     ${baseDir}/bin/human/analyze_clustering_results.py --cluster_file ${cluster_results} \
+//                             --cluster_out_fh cluster_assignment.txt \
+//                             --mod_bam ${mod_bam} \
+//                             --telo_stats ${telo_stats}
 
-    mv .command.out clustering_results.txt
-    """
-}
+//     mv .command.out clustering_results.txt
+//     """
+// }
 
 process READ_BY_READ_ANALYSIS {
 
@@ -318,7 +318,6 @@ process READ_BY_READ_ANALYSIS {
     tag 'Read-by-Read Analysis'
 
     input:
-        path(cluster_results)
         path(mod_bam)
         path(telo_stats)
         path(modcalls)
@@ -332,8 +331,7 @@ process READ_BY_READ_ANALYSIS {
 
     script:
     """
-    ${baseDir}/bin/human/cluster_specific_modification_analysis.py --cluster_file ${cluster_results} \
-                                                --mod_bam ${mod_bam} \
+    ${baseDir}/bin/human/cluster_specific_modification_analysis.py --mod_bam ${mod_bam} \
                                                 --telo_stats ${telo_stats} \
                                                 --mod_table ${modcalls} \
                                                 --image_width ${params.image_width} \
@@ -341,7 +339,7 @@ process READ_BY_READ_ANALYSIS {
                                                 --modification ${params.modification_code} \
                                                 --c_strand_only ${params.c_strand_only}
 
-    ${baseDir}/bin/human/cluster_plots.R ${telo_summary} ${telo_stats} ${cluster_results} ${params.c_strand_only}
+    ${baseDir}/bin/human/cluster_plots.R ${telo_summary} ${telo_stats} ${params.c_strand_only}
     """
 }
 
@@ -393,7 +391,6 @@ process CREATE_CLUSTER_FASTA {
     tag 'Cluster Cluster FASTA'
 
     input:
-        path(cluster_results)
         path(mod_bam)
         path(telo_stats)
 
@@ -404,8 +401,7 @@ process CREATE_CLUSTER_FASTA {
 
     script:
     """
-    ${baseDir}/bin/human/create_cluster_fasta_and_bam.py --cluster_file ${cluster_results} \
-                                                --mod_bam ${mod_bam} \
+    ${baseDir}/bin/human/create_cluster_fasta_and_bam_new.py --telobam ${mod_bam} \
                                                 --telo_stats ${telo_stats}
     """
 }
@@ -414,6 +410,8 @@ process GENERATE_CONSENSUS_AND_ALIGN {
     maxForks 5
     label 'telomod'
     tag 'Generate Consensus and Align Reads'
+    maxRetries 5
+
 
     input:
         tuple val(cluster), path(cluster_fasta), path(cluster_bam)
