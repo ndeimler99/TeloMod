@@ -3,7 +3,7 @@
 import argparse
 import pysam
 import gzip
-import cairo
+import pandas as pd
 import math
 
 def rev_comp(seq):
@@ -32,8 +32,9 @@ def cigar(full, trimmed):
 
 def reorient_bam(bam_file, telo_stats, out_file, ref_bam):
     
-    telo_dict = get_telo_dict(telo_stats)
+    #telo_dict = get_telo_dict(telo_stats)
     
+    telo_dict = pd.read_table(telo_stats, sep="\t")
     aln_file = pysam.AlignmentFile(bam_file, "rb", check_sq=False)
     out_bam = pysam.AlignmentFile(out_file, "wb", template=aln_file)
 
@@ -43,8 +44,8 @@ def reorient_bam(bam_file, telo_stats, out_file, ref_bam):
         ref_dict[aln.query_name] = aln 
 
     for aln in aln_file:
-        if aln.query_name in telo_dict:
-            if telo_dict[aln.query_name][0] == "C":
+        if aln.query_name in list(telo_dict["read_id"]):
+            if telo_dict.loc[telo_dict["read_id"]==aln.query_name, "strand"].item() == "C":
                 qual = aln.query_qualities
                 aln.query_sequence = rev_comp(aln.query_sequence)
                 aln.query_qualities = qual[::-1]

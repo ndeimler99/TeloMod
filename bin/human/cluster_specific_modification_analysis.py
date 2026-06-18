@@ -14,14 +14,14 @@ def rev_comp(seq):
 
 def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_only, image_width=1500, image_height=1000):
     
-
-    max_telo_length = max(telo_stats["vrr_telo_length"])
+    print("Script Started")
+    max_telo_length = max([telo_stats[read]["vrr_telo_length"] for read in telo_stats])#list(telo_stats["vrr_telo_length"]))
     #print(max_telo_length)
     subtelo_stretch_max = 5000
     seq_length = subtelo_stretch_max + max_telo_length
 
-    sorted_telos = telo_stats.sort_values(by="vrr_telo_length", ascending=True)["read_id"]
-    #sorted_telos = sorted(seqs, key=lambda k: telo_stats[k]["telo_length"], reverse=False)
+    #sorted_telos = list(telo_stats.sort_values(by="vrr_telo_length", ascending=True)["read_id"])
+    sorted_telos = sorted(telo_stats, key=lambda k: telo_stats[k]["vrr_telo_length"], reverse=False)
 
     strand_spacer = 50
     y_offset_top = 50
@@ -36,9 +36,14 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
 
     nucl_width = (image_width - x_offset_left - x_offset_right)/seq_length
     
-    g_strands = len(telo_stats[telo_stats["strand"]=="G"])
-    c_strands = len(telo_stats[telo_stats["strand"]=="C"])
+    g_strands = len([telo_stats[read]["strand"] for read in telo_stats if telo_stats[read]["strand"] == "G"])
+    c_strands = len([telo_stats[read]["strand"] for read in telo_stats if telo_stats[read]["strand"] == "C"])
     
+    print(g_strands)
+    print(seq_height)
+    print(seq_height*g_strands)
+  
+
     with cairo.PDFSurface(file_name, image_width, image_height) as surface:
     #if True:
 #         surface = cairo.ImageSurface(cairo.FORMAT_RGB24,
@@ -56,25 +61,23 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
         
         ### draw C telomeres 
         ctx.set_source_rgb(0,0,0)
+
+        ctx.rectangle(x_offset_left, image_height-y_offset_bottom, image_width-x_offset_left - x_offset_right, 3)
+        ctx.fill()
+
         # draw y axis
         if not c_strand_only:
             ctx.rectangle(x_offset_left - 3, y_offset_top+g_strands*seq_height+strand_spacer, 3, c_strands*seq_height + 3)
-        else:
-            ctx.rectangle(x_offset_left - 3, y_offset_top, 3, c_strands*seq_height + 3)
-        # draw x axis
-        ctx.rectangle(x_offset_left, image_height-y_offset_bottom, image_width-x_offset_left - x_offset_right, 3)
-        ctx.fill()
-        
-        ctx.save()
-        a,b,width,height,c,d = ctx.text_extents('C Strand')
-        ctx.translate(30, image_height - y_offset_bottom - (seq_height*c_strands)/2)
-        ctx.rotate(-math.pi / 2)   
-        ctx.move_to(-width/2, 0)
-        ctx.text_path('C Strand')
-        ctx.fill()
-        ctx.restore()
+            
+            ctx.save()
+            a,b,width,height,c,d = ctx.text_extents('C Strand')
+            ctx.translate(30, image_height - y_offset_bottom - (seq_height*c_strands)/2)
+            ctx.rotate(-math.pi / 2)   
+            ctx.move_to(-width/2, 0)
+            ctx.text_path('C Strand')
+            ctx.fill()
+            ctx.restore()
 
-        if not c_strand_only:
             ctx.save()
             a,b,width,height,c,d = ctx.text_extents('G Strand')
             ctx.translate(30, image_height - y_offset_bottom - (seq_height*c_strands)-strand_spacer - (seq_height*g_strands/2))
@@ -83,7 +86,23 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
             ctx.text_path('G Strand')
             ctx.fill()
             ctx.restore()
+        else:
+            ctx.rectangle(x_offset_left - 3, y_offset_top, 3, c_strands*seq_height + 3)
+
+            ctx.save()
+            a,b,width,height,c,d = ctx.text_extents('Number of Reads')
+            ctx.translate(30, image_height - y_offset_bottom - (seq_height*c_strands)/2)
+            ctx.rotate(-math.pi / 2)   
+            ctx.move_to(-width/2, 0)
+            ctx.text_path('Number of Reads')
+            ctx.fill()
+            ctx.restore()
         
+        a,b,width,height,c,d = ctx.text_extents('Telomere Position')
+        ctx.move_to(x_offset_left + (image_width - x_offset_left - x_offset_right)/2 - width/2, image_height - 10)
+        ctx.text_path("Telomere Position")
+        ctx.fill()
+
         # label x-axis positions
         ctx.set_source_rgb(0, 0, 0)
         for i in range(0, max_telo_length, 1000):
@@ -107,6 +126,7 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
                 ctx.fill()
             ctx.rectangle(x_offset_left + subtelo_stretch_max*nucl_width - i*nucl_width - 1, image_height-y_offset_bottom, 2, 4)
             ctx.fill()
+
         
         # label y-axis positions
         for i in range(0, c_strands, 20):
@@ -116,16 +136,16 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
                 ctx.text_path('{}'.format(i))
             ctx.rectangle(x_offset_left-5, image_height - y_offset_bottom - i*seq_height, 4, 2)
             ctx.fill()
-            
+                
         # draw telomeres
         y_rect = image_height - y_offset_bottom - seq_height
         for telo in sorted_telos:
-            if telo_stats.loc[telo_stats["read_id"]==telo, "strand"].item() == "G":
+            if telo_stats[telo]["strand"] == "G":
                 continue
     
-            telo_seq = telo_dict[telo][telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item():telo_stats.loc[telo_stats["read_id"]==telo, "telo_end"].item()]
+            telo_seq = telo_dict[telo][telo_stats[telo]["vrr_start_pos"]:telo_stats[telo]["telo_end"]]
             
-            subtelo = telo_dict[telo][0:telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item()][-5000:]
+            subtelo = telo_dict[telo][0:telo_stats[telo]["vrr_start_pos"]][-5000:]
             x_rect = x_offset_left + subtelo_stretch_max*nucl_width
             i = 0
             while i < len(telo_seq):
@@ -162,10 +182,11 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
             # draw modifications
             
             if telo in mod_dict:
+                telo_start = telo_stats[telo]["vrr_start_pos"]
                 for pos in mod_dict[telo]["pos"]:
-                    if pos < telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item() - subtelo_stretch_max:
+                    if pos < telo_start - subtelo_stretch_max:
                         continue
-                    pos = pos - (telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item() - subtelo_stretch_max)
+                    pos = pos - (telo_start - subtelo_stretch_max)
                     
                     ctx.set_source_rgb(0, 0.302, 0.251)
                     ctx.rectangle(x_offset_left+pos*nucl_width, y_rect, 1*nucl_width, seq_height)
@@ -195,11 +216,11 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
             y_rect = y_offset_top + g_strands*seq_height - seq_height
                 
             for telo in sorted_telos:
-                if telo_stats.loc[telo_stats["read_id"]==telo, "strand"].item() == "C":
+                if telo_stats[telo]["strand"] == "C":
                     continue
                 
-                telo_seq = telo_dict[telo][telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item():telo_stats.loc[telo_stats["read_id"]==telo, "telo_end"].item()]
-                subtelo = telo_dict[telo][0:telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item()][-5000:]
+                telo_seq = telo_dict[telo][telo_stats[telo]["vrr_start_pos"]:telo_stats[telo]["telo_end"]]
+                subtelo = telo_dict[telo][0:telo_stats[telo]["vrr_start_pos"]][-5000:]
                 x_rect = x_offset_left + subtelo_stretch_max*nucl_width
                 i = 0
                 while i < len(telo_seq):
@@ -235,9 +256,10 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
                         
                 if telo in mod_dict:
                     for pos in mod_dict[telo]["pos"]:
-                        if pos < telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item() - subtelo_stretch_max:
+                        telo_start = telo_stats[telo]["vrr_start_pos"]#.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item()
+                        if pos < telo_start - subtelo_stretch_max:
                             continue
-                        pos = pos - (telo_stats.loc[telo_stats["read_id"]==telo, "vrr_start_pos"].item() - subtelo_stretch_max)
+                        pos = pos - (telo_start - subtelo_stretch_max)
                         
                         ctx.set_source_rgb(0, 0.302, 0.251)
                         ctx.rectangle(x_offset_left+pos*nucl_width, y_rect, 1*nucl_width, seq_height)
@@ -272,20 +294,20 @@ def plot_cluster_telo_seqs(telo_dict, telo_stats, mod_dict, file_name, c_strand_
     
 #     return cluster_dict, telo_seqs
 
-def get_telo_dict(mod_bam, stats_table):
+def get_telo_dict(mod_bam, stats_dict):
 
     aln_file = pysam.AlignmentFile(mod_bam, "rb", check_sq=False)
     
     telo_reads = {}
 
     for aln in aln_file:
-        if aln.query_name in list(stats_table["read_id"]) and not aln.is_supplementary and not aln.is_secondary:
+        if aln.query_name in stats_dict and not aln.is_supplementary and not aln.is_secondary:
             
             if aln.is_reverse:
                 aln.query_sequence = rev_comp(aln.query_sequence)
             
             #telo_orientated[aln.query_name] = aln.query_sequence
-            if stats_table.loc[stats_table["read_id"]==aln.query_name,"strand"].item() == "G":
+            if stats_dict[aln.query_name]["strand"] == "G":
                 telo_reads[aln.query_name] = aln.query_sequence
             else:
                 telo_reads[aln.query_name] = rev_comp(aln.query_sequence)
@@ -295,6 +317,7 @@ def get_telo_dict(mod_bam, stats_table):
 def get_mod_dict(mod_table, modification, telo_stats):
       # load mod bam
     mod_dict = {}
+
     with gzip.open(mod_table, "rt") as fh:
         linecount = 0
         for line in fh:
@@ -302,7 +325,7 @@ def get_mod_dict(mod_table, modification, telo_stats):
                 linecount += 1
                 continue
             line = line.strip().split()
-            if line[0] not in list(telo_stats["read_id"]):
+            if line[0] not in telo_stats:
                 continue
             if line[0] not in mod_dict:
                 mod_dict[line[0]] = {"full_read":0, "subtelo":0, "telo":0, "pos":[]}
@@ -311,14 +334,14 @@ def get_mod_dict(mod_table, modification, telo_stats):
                 continue
                 
             if line[13] == modification:          
-                if telo_stats.loc[telo_stats["read_id"]==line[0], "strand"].item() == "C":
-                    mod_pos = telo_stats.loc[telo_stats["read_id"]==line[0], "read_len"].item() - int(line[1])
+                if telo_stats[line[0]]["strand"] == "C":
+                    mod_pos = telo_stats[line[0]]["read_len"] - int(line[1])
                 else:
                     mod_pos = int(line[1])
 
-                if mod_pos > telo_stats.loc[telo_stats["read_id"]==line[0], "telo_end"].item():
+                if mod_pos > telo_stats[line[0]]["telo_end"]:
                     continue
-                elif mod_pos > telo_stats.loc[telo_stats["read_id"]==line[0], "vrr_start_pos"].item():
+                elif mod_pos > telo_stats[line[0]]["vrr_start_pos"]:#telo_stats.loc[telo_stats["read_id"]==line[0], "vrr_start_pos"].item():
                     mod_dict[line[0]]["telo"] += 1
                 else:
                     mod_dict[line[0]]["subtelo"] += 1
@@ -354,12 +377,24 @@ def main(args):
 
     stats_table = pd.read_table(args.telo_stats, sep="\t")
     stats_table["telo_end"] = stats_table["vrr_start_pos"] + stats_table["vrr_telo_length"]
-    telo_dict = get_telo_dict(args.mod_bam, stats_table)
-    mod_dict = get_mod_dict(args.mod_table, args.modification, stats_table)
 
+    telo_stats = {}
+    for read in list(stats_table["read_id"]):
+        telo_stats[read] = {"strand": stats_table.loc[stats_table["read_id"]==read, "strand"].item(),
+                            "vrr_start_pos": stats_table.loc[stats_table["read_id"]==read, "vrr_start_pos"].item(),
+                            "telo_end":  stats_table.loc[stats_table["read_id"]==read, "telo_end"].item(),
+                            "read_len":stats_table.loc[stats_table["read_id"]==read, "read_len"].item(),
+                            "vrr_telo_length":stats_table.loc[stats_table["read_id"]==read, "vrr_telo_length"].item(),
+                            "Cluster":stats_table.loc[stats_table["read_id"]==read, "Cluster"].item()}
+
+    telo_dict = get_telo_dict(args.mod_bam, telo_stats)
+    print("Telo Dict Loaded")
+    mod_dict = get_mod_dict(args.mod_table, args.modification, telo_stats)
+    print("Mod Dict Loaded")
 
     for cluster in stats_table["Cluster"].dropna().unique():
-        plot_cluster_telo_seqs(telo_dict, stats_table[stats_table["Cluster"]==cluster], mod_dict, "cluster_{}.pdf".format(int(cluster)), \
+        print(cluster)
+        plot_cluster_telo_seqs(telo_dict, {k: v for k, v in telo_stats.items() if telo_stats[k]["Cluster"] == cluster}, mod_dict, "cluster_{}.pdf".format(int(cluster)), \
                             args.c_strand_only, image_width=args.image_width, image_height=args.image_height)
 
 

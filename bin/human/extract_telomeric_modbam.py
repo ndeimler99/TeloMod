@@ -2,32 +2,30 @@
 
 import argparse
 import pysam
-import gzip
-import cairo
-import math
-
-def rev_comp(seq):
-    rev_dict = {"A":"T", "T":"A", "C":"G", "G":"C"}
-    return ''.join([rev_dict[i] for i in seq[::-1]])
+import pandas as pd
 
 def extract_telomeric_modbam(telo_stats_fh, mod_bam, out_bam):
     
-    # load telomeric stats 
-    telo_stats = {}
-    with open(telo_stats_fh, "r") as fh:
-        linecount = 0
-        for line in fh:
-            if linecount == 0:
-                linecount += 1
-                continue
-            line = line.strip().split()
-            telo_stats[line[0]] = {"strand":line[1], "read_length":None, "telo_length":int(line[4]), "telo_start":int(line[3]), "telo_end":int(line[3])+int(line[4])}
+    # load telomeric stats
+    telo_stats = pd.read_table(telo_stats_fh, sep="\t")
+    # telo_stats = []
+    # with open(telo_stats_fh, "r") as fh:
+    #     linecount = 0
+    #     for line in fh:
+    #         if linecount == 0:
+    #             linecount += 1
+    #             continue
+    #         line = line.strip().split()
+    #         telo_stats.append(line[0])
+    #         # = {"strand":line[1], "read_length":None, "telo_length":int(line[4]), "telo_start":int(line[3]), "telo_end":int(line[3])+int(line[4])}
     
     modbam = pysam.AlignmentFile(mod_bam, "rb", check_sq=False)
     out_bam = pysam.AlignmentFile(out_bam, "wb", template=modbam)
 
+    telo_reads = list(telo_stats["read_id"])
+
     for aln in modbam:
-        if aln.query_name in telo_stats:
+        if aln.query_name in telo_reads:
             out_bam.write(aln)
 
         

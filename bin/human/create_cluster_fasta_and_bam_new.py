@@ -12,6 +12,7 @@ def rev_comp(seq):
 
 def main(args):
 
+    args.max_read_length = int(args.max_read_length)
     # load cluster dict from out_file
     stats_df = pd.read_table(args.telo_stats, sep="\t")
     aln_file = pysam.AlignmentFile(args.telobam, "r", check_sq=False)
@@ -20,6 +21,7 @@ def main(args):
     telo_dict = {}
 
     for aln in aln_file:
+        print(aln.query_name)
         # if aln.query_name == "c48e0977-0e21-4d7b-a81c-c82c7aebc6cd":
         #     print(stats_df.loc[stats_df["read_id"]==aln.query_name, "strand"].item())
         #     if stats_df.loc[stats_df["read_id"]==aln.query_name, "strand"].item() == "C":
@@ -32,11 +34,17 @@ def main(args):
 
         aln_dict[aln.query_name] = aln
 
+    print(len(list(stats_df["read_id"])))
+    print(len(telo_dict))
+    print(len(aln_dict))
+
     for cluster in stats_df["Cluster"].dropna().unique():
         cluster_bam = pysam.AlignmentFile("cluster_{}.bam".format(int(cluster)), "wb", template=aln_file)
         with open("cluster_{}.fa".format(int(cluster)), "w") as fasta_fh:
             for read in stats_df.loc[stats_df["Cluster"]==cluster]["read_id"]:
-                if len(telo_dict[read]) > 50000:
+                if read not in telo_dict:
+                    continue
+                if len(telo_dict[read]) > args.max_read_length:
                     telo_dict[read] = telo_dict[read][-30000:]
                 fasta_fh.write(">{}\n{}\n".format(read, telo_dict[read]))
                 cluster_bam.write(aln_dict[read])
@@ -45,6 +53,7 @@ def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--telo_stats",required=True)
     parser.add_argument("--telobam", required=True)
+    parser.add_argument("--max_read_length", required=True)
     return parser
 
 if __name__ == "__main__":

@@ -331,6 +331,8 @@ process READ_BY_READ_ANALYSIS {
 
     script:
     """
+    
+    export PYTHONUNBUFFERED=1
     ${baseDir}/bin/human/cluster_specific_modification_analysis.py --mod_bam ${mod_bam} \
                                                 --telo_stats ${telo_stats} \
                                                 --mod_table ${modcalls} \
@@ -402,7 +404,8 @@ process CREATE_CLUSTER_FASTA {
     script:
     """
     ${baseDir}/bin/human/create_cluster_fasta_and_bam_new.py --telobam ${mod_bam} \
-                                                --telo_stats ${telo_stats}
+                                                --telo_stats ${telo_stats} \
+                                                --max_read_length ${params.max_read_length}
     """
 }
 
