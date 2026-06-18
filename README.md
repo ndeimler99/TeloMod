@@ -1,4 +1,4 @@
-# TeloMod
+# TeloMod v1.1.1
 
 TeloMod is a nextflow pipeline for the analysis of Telomeric Reads sequenced with Oxford Nanopore Technologies (ONT) sequencing devices and basecalled with a modified basecalling model.
 TeloMod currently only works on human telomere sequencing data (and other vertebrates), but will in the future be expanded for other model species. The use of nextflow eliminates any dependency/version conflicts as the first time the pipeline is executed docker files containing the appropriate software will be downloaded. Please see the nextflow and docker documentation for more information on this.
