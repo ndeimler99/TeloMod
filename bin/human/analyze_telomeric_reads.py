@@ -168,6 +168,7 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
     y_offset_bottom = 50
     x_offset_left = 75
     x_offset_right = 10
+    
     if not c_strand_only:
         seq_height = (image_height - strand_spacer - y_offset_top - y_offset_bottom)/len(sorted_telos)
     else:
@@ -182,10 +183,12 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
         #len([read for read in telo_stats if telo_stats[read]["strand"]=="C"])
     
     with cairo.PDFSurface(file_name, image_width, image_height) as surface:
-    #if True:
-#         surface = cairo.ImageSurface(cairo.FORMAT_RGB24,
-#                                  image_width,
-#                                  image_height)
+    # if True:
+        # surface = cairo.ImageSurface(cairo.FORMAT_RGB24,
+        #                          image_width,
+        #                          image_height)
+
+        # draw thousands of rectangles...
         ctx = cairo.Context(surface)
         ctx.rectangle(0, 0, image_width, image_height)
         ctx.set_source_rgb(1,1,1)
@@ -263,7 +266,7 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
         y_rect = image_height - y_offset_bottom - seq_height
 
         for telo in sorted_telos:
-            if telo_stats[read]["strand"] == "G":
+            if telo_stats[telo]["strand"] == "G":
                 continue
     
             telo_seq = telo_orientated[telo][telo_stats[telo]["vrr_start_pos"]:telo_stats[telo]["telo_end"]]
@@ -271,36 +274,107 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
             subtelo = telo_orientated[telo][0:telo_stats[telo]["vrr_start_pos"]][-5000:]
             x_rect = x_offset_left + subtelo_stretch_max*nucl_width
             i = 0
-            while i < len(telo_seq):
-                if telo_seq[i:i+6] == 'GGTTAG':
-                    i += 6
-                    ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
-                    ctx.rectangle(x_rect, y_rect, 6*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect += 6*nucl_width
-                else:
-                    ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
-                    ctx.rectangle(x_rect, y_rect, 1*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect += 1*nucl_width
-                    i+=1
-    
-            # draw subtelomere
+            segments = []
             i = 0
-            x_rect = subtelo_stretch_max*nucl_width + x_offset_left
-            while i < len(subtelo):
-                if subtelo[-i:-i-6] == "GGTTAG":
+            while i < len(telo_seq):
+                if telo_seq[i:i+6] == "GGTTAG":
+                    segments.append(("telo", 6))
                     i += 6
-                    ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
-                    ctx.rectangle(x_rect-6*nucl_width, y_rect, 6*nucl_width, seq_height)
-                    ctx.fill()
-                    x_rect -= 6*nucl_width
                 else:
+                    segments.append(("nontelo", 1))
                     i += 1
-                    ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
-                    ctx.rectangle(x_rect-1*nucl_width, y_rect, 1*nucl_width, seq_height)
+
+            run_colour, run_len = segments[0]
+
+            for colour, length in segments[1:]:
+                if colour == run_colour:
+                    run_len += length
+                else:
+                    if run_colour == "telo":
+                        ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                    else:
+                        ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+                    ctx.rectangle(x_rect, y_rect, run_len * nucl_width, seq_height)
                     ctx.fill()
-                    x_rect -= 1*nucl_width     
+
+                    x_rect += run_len * nucl_width
+                    run_colour = colour
+                    run_len = length
+
+            if run_colour == "telo":
+                ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+            else:
+                ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+            ctx.rectangle(x_rect, y_rect, run_len * nucl_width, seq_height)
+            ctx.fill()
+
+            
+            # while i < len(telo_seq):
+            #     if telo_seq[i:i+6] == 'GGTTAG':
+            #         i += 6
+            #         ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+            #         ctx.rectangle(x_rect, y_rect, 6*nucl_width, seq_height)
+            #         ctx.fill()
+            #         x_rect += 6*nucl_width
+            #     else:
+            #         ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+            #         ctx.rectangle(x_rect, y_rect, 1*nucl_width, seq_height)
+            #         ctx.fill()
+            #         x_rect += 1*nucl_width
+            #         i+=1
+    
+            segments = []
+            i = 0
+            while i < len(subtelo):
+                if subtelo[i:i+6] == "GGTTAG":
+                    segments.append(("telo", 6))
+                    i += 6
+                else:
+                    segments.append(("nontelo", 1))
+                    i += 1
+
+            run_colour, run_len = segments[0]
+            x_rect = x_offset_left + subtelo_stretch_max*nucl_width
+
+            for colour, length in segments[1:]:
+                if colour == run_colour:
+                    run_len += length
+                else:
+                    if run_colour == "telo":
+                        ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                    else:
+                        ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+                    ctx.rectangle(x_rect - run_len * nucl_width, y_rect, run_len * nucl_width, seq_height)
+                    ctx.fill()
+
+                    x_rect -= run_len * nucl_width
+                    run_colour = colour
+                    run_len = length
+
+            if run_colour == "telo":
+                ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+            else:
+                ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+            ctx.rectangle(x_rect - run_len * nucl_width, y_rect, run_len * nucl_width, seq_height)
+            ctx.fill()
+                
+            # while i < len(subtelo):
+            #     if subtelo[-i:-i-6] == "GGTTAG":
+            #         i += 6
+            #         ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+            #         ctx.rectangle(x_rect-6*nucl_width, y_rect, 6*nucl_width, seq_height)
+            #         ctx.fill()
+            #         x_rect -= 6*nucl_width
+            #     else:
+            #         i += 1
+            #         ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+            #         ctx.rectangle(x_rect-1*nucl_width, y_rect, 1*nucl_width, seq_height)
+            #         ctx.fill()
+            #         x_rect -= 1*nucl_width     
     
             # draw modifications
             
@@ -341,40 +415,115 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
                 if telo_stats[telo]["strand"] == "C":
                     continue
                 
+
                 telo_seq = telo_orientated[telo][telo_stats[telo]["vrr_start_pos"]:telo_stats[telo]["telo_end"]]
                 subtelo = telo_orientated[telo][0:telo_stats[telo]["vrr_start_pos"]][-5000:]
                 x_rect = x_offset_left + subtelo_stretch_max*nucl_width
                 i = 0
+
+                segments = []
+                i = 0
                 while i < len(telo_seq):
-                    if telo_seq[i:i+6] == 'GGTTAG':
+                    if telo_seq[i:i+6] == "GGTTAG":
+                        segments.append(("telo", 6))
                         i += 6
-                        ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
-                        ctx.rectangle(x_rect, y_rect, 6*nucl_width, seq_height)
-                        ctx.fill()
-                        x_rect += 6*nucl_width
                     else:
-                        ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
-                        ctx.rectangle(x_rect, y_rect, 1*nucl_width, seq_height)
+                        segments.append(("nontelo", 1))
+                        i += 1
+
+                run_colour, run_len = segments[0]
+
+                for colour, length in segments[1:]:
+                    if colour == run_colour:
+                        run_len += length
+                    else:
+                        if run_colour == "telo":
+                            ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                        else:
+                            ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+                        ctx.rectangle(x_rect, y_rect, run_len * nucl_width, seq_height)
                         ctx.fill()
-                        x_rect += 1*nucl_width
-                        i+=1
+
+                        x_rect += run_len * nucl_width
+                        run_colour = colour
+                        run_len = length
+
+                if run_colour == "telo":
+                    ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                else:
+                    ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+                ctx.rectangle(x_rect, y_rect, run_len * nucl_width, seq_height)
+                ctx.fill()
+
+                # while i < len(telo_seq):
+                #     if telo_seq[i:i+6] == 'GGTTAG':
+                #         i += 6
+                #         ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                #         ctx.rectangle(x_rect, y_rect, 6*nucl_width, seq_height)
+                #         ctx.fill()
+                #         x_rect += 6*nucl_width
+                #     else:
+                #         ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+                #         ctx.rectangle(x_rect, y_rect, 1*nucl_width, seq_height)
+                #         ctx.fill()
+                #         x_rect += 1*nucl_width
+                #         i+=1
         
                 # draw subtelomere
+
+                segments = []
                 i = 0
-                x_rect = subtelo_stretch_max*nucl_width + x_offset_left
                 while i < len(subtelo):
-                    if subtelo[-i:-i-6] == "GGTTAG":
+                    if subtelo[i:i+6] == "GGTTAG":
+                        segments.append(("telo", 6))
                         i += 6
-                        ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
-                        ctx.rectangle(x_rect-6*nucl_width, y_rect, 6*nucl_width, seq_height)
-                        ctx.fill()
-                        x_rect -= 6*nucl_width
                     else:
+                        segments.append(("nontelo", 1))
                         i += 1
-                        ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
-                        ctx.rectangle(x_rect-1*nucl_width, y_rect, 1*nucl_width, seq_height)
+
+                run_colour, run_len = segments[0]
+                x_rect = x_offset_left + subtelo_stretch_max*nucl_width
+
+
+                for colour, length in segments[1:]:
+                    if colour == run_colour:
+                        run_len += length
+                    else:
+                        if run_colour == "telo":
+                            ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                        else:
+                            ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+                        ctx.rectangle(x_rect - run_len * nucl_width, y_rect, run_len * nucl_width, seq_height)
                         ctx.fill()
-                        x_rect -= 1*nucl_width
+
+                        x_rect -= run_len * nucl_width
+                        run_colour = colour
+                        run_len = length
+
+                if run_colour == "telo":
+                    ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                else:
+                    ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+
+                ctx.rectangle(x_rect - run_len * nucl_width, y_rect, run_len * nucl_width, seq_height)
+                ctx.fill()
+                
+                # while i < len(subtelo):
+                #     if subtelo[-i:-i-6] == "GGTTAG":
+                #         i += 6
+                #         ctx.set_source_rgba(0.118, 0.533, 0.898, 0.5)
+                #         ctx.rectangle(x_rect-6*nucl_width, y_rect, 6*nucl_width, seq_height)
+                #         ctx.fill()
+                #         x_rect -= 6*nucl_width
+                #     else:
+                #         i += 1
+                #         ctx.set_source_rgba(1, 0.757, 0.027, 0.5)
+                #         ctx.rectangle(x_rect-1*nucl_width, y_rect, 1*nucl_width, seq_height)
+                #         ctx.fill()
+                #         x_rect -= 1*nucl_width
                         
                 if telo in mod_dict:
                     for pos in mod_dict[telo]["pos"]:
@@ -386,7 +535,13 @@ def plot_cluster_independent_telomeric_reads(mod_bam, telo_stats_fh, mod_table, 
                         ctx.rectangle(x_offset_left+pos*nucl_width, y_rect, 1*nucl_width, seq_height)
                         ctx.fill()
                 y_rect -= seq_height            
-
+        
+        # surface.flush()
+        # pdf = cairo.PDFSurface(file_name, image_width, image_height)
+        # ctx_pdf = cairo.Context(pdf)
+        # ctx_pdf.set_source_surface(surface, 0, 0)
+        # ctx_pdf.paint()
+        # pdf.finish()
         
 def main(args):
 

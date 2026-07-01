@@ -326,12 +326,12 @@ class NfcoreTemplate {
         String workflow_version = version(workflow)
         String.format(
             """             
-            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue} ___________   ________   _          ________   _       _   ________   _____
-            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}|____   ____| |  ______| | |        |  ____  | |  \    / | |  ____  | |   _  \
-            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     | |      | |___     | |        | |    | | |   \  /  | | |    | | |  | \  \
-            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     | |      |  ___|    | |        | |    | | | |\ \/   | | |    | | |  |  |  |
-            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     | |      | |______  | |_____   | |____| | | | \__/| | | |____| | |  |_/  /
-            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     |_|      |________| |_______|  |________| |_|     |_| |________| |______/ 
+            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue} ___________   ________   _          ________   _        _   ________   _____
+            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}|____   ____| |  ______| | |        |  ____  | |  \\    /  | |  ____  | |   _  \\
+            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     | |      | |___     | |        | |    | | |   \\  /   | | |    | | |  | \\  \\
+            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     | |      |  ___|    | |        | |    | | | |\\ \\/ /| | | |    | | |  |  |  |
+            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     | |      | |______  | |_____   | |____| | | | \\__/ | | | |____| | |  |_/  /
+            ${colors.igreen}||||||||||   ${colors.reset}${colors.iblue}     |_|      |________| |_______|  |________| |_|      |_| |________| |______/ 
             ${colors.igreen}||||||||||  ${colors.reset}${colors.bold} ${workflow_version}${colors.reset}
             ${NfcoreTemplate.dashedLine(monochrome_logs)}
             """.stripIndent()
